@@ -1,8 +1,11 @@
 package pollytech.aisw.bookmarket.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import pollytech.aisw.bookmarket.domain.Book;
+import pollytech.aisw.bookmarket.exception.BookIdException;
+import pollytech.aisw.bookmarket.exception.CategoryException;
 import pollytech.aisw.bookmarket.service.BookService;
 import pollytech.aisw.bookmarket.validator.BookValidator;
 import pollytech.aisw.bookmarket.validator.UnitsInStockValidator;
@@ -58,6 +61,10 @@ public class BookController {
     @GetMapping("/{category}")
     public String requestBooksByCategory(@PathVariable("category") String bookCategory, Model model){
         List<Book> booksByCategory = bookService.getBookListByCategory(bookCategory);
+//        카테고리를 존재하지 않으면 강제로 CategoryException을 발생
+        if(booksByCategory == null || booksByCategory.isEmpty())
+            throw new CategoryException();
+
         model.addAttribute("bookList", booksByCategory);
         return "books";
     }
@@ -134,5 +141,15 @@ public class BookController {
         modelAndView.addObject("bookList", list);
         modelAndView.setViewName("books");
         return modelAndView;
+    }
+
+    @ExceptionHandler(value = {BookIdException.class})
+    public ModelAndView handleError(HttpServletRequest request, BookIdException exception){
+        ModelAndView mav = new ModelAndView();
+        mav.addObject("invalidBookId", exception.getBookId());
+        mav.addObject("exception", exception);
+        mav.addObject("url", request.getRequestURL()+"?"+request.getQueryString());
+        mav.setViewName("errorBookId");
+        return mav;
     }
 }
